@@ -26,6 +26,9 @@ required_keys = [
     "ROTA_SERVICE_ACCOUNT",
     "ROTA_ADMINS",
     "ROTA_USERS",
+    "SMARTSHEET_TOKEN",
+    "SMARTSHEET_ID",
+    "SPREADSHEET_ID"
 ]
 
 load_dotenv()

@@ -36,6 +36,8 @@ def setup_environment_variables():
     os.environ["VAULT_MOUNT_POINT_FOR_DYNACONF"] = "VAULT_MOUNT_POINT_FOR_DYNACONF"
     os.environ["VAULT_PATH_FOR_DYNACONF"] = "VAULT_PATH_FOR_DYNACONF"
     os.environ["VAULT_KV_VERSION_FOR_DYNACONF"] = "VAULT_KV_VERSION_FOR_DYNACONF"
+    os.environ["ROTA_SERVICE_ACCOUNT"] = "ROTA_SERVICE_ACCOUNT"
+
 
 
 @pytest.fixture(autouse=True)

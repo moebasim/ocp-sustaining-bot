@@ -2,28 +2,41 @@ from config import config
 import gspread
 import re
 import logging
+import os
+import json
 from datetime import date
 
 logger = logging.getLogger(__name__)
 
 
 class GSheet:
-    def __init__(self, token: dict = config.ROTA_SERVICE_ACCOUNT):
-        print("GSheet token value:", token)
-        print("GSheet token type:", type(token))
+    def __init__(self, token: dict = None):
+        # Try to load token from different sources
+        if token is None:
+            # Option 1: From config (dict or JSON string)
+            token = getattr(config, 'ROTA_SERVICE_ACCOUNT', None)
+            
+            # Option 2: From file path
+            if isinstance(token, str):
+                # Check if it's a file path
+                if os.path.exists(token):
+                    with open(token, 'r') as f:
+                        token = json.load(f)
+                # Try parsing as JSON string
+                else:
+                    try:
+                        token = json.loads(token)
+                    except json.JSONDecodeError:
+                        logger.error(f"ROTA_SERVICE_ACCOUNT is not valid JSON")
+                        raise ValueError("Invalid ROTA_SERVICE_ACCOUNT format")
         
-        self._rota_sheet = None
-        spreadsheet_id = getattr(config, "SPREADSHEET_ID", None)
-
+        if not token or not isinstance(token, dict):
+            raise ValueError("ROTA_SERVICE_ACCOUNT must be a dict or valid JSON")
+        rota_sheet = getattr(config, "ROTA_SHEET", "ROTA")
         assignment_wsheet = getattr(config, "ASSIGNMENT_WSHEET", "Assignments")
-        account = gspread.service_account_from_dict(token)
-        
-        if spreadsheet_id:
-            self._rota_sheet = account.open_by_key(spreadsheet_id)
-        else:
-            rota_sheet = getattr(config, "ROTA_SHEET", "ROTA")
-            self._rota_sheet = account.open(rota_sheet)
 
+        account = gspread.service_account_from_dict(token)
+        self._rota_sheet = account.open(rota_sheet)
         self._assignment_wsheet = self._rota_sheet.worksheet(assignment_wsheet)
 
     def add_release(
@@ -43,18 +56,11 @@ class GSheet:
                 f"{rel_ver} does not seem to match the expected format `\\d\\.\\d{1, 3}\\.\\d{1, 3}`"
             )
 
-        row_to_append = [
-            rel_ver,
-            s_date.isoformat() if isinstance(s_date, date) else s_date,  # This ensures all dates are written as strings, preventing serialization errors.
-            e_date.isoformat() if isinstance(e_date, date) else e_date,  # This ensures all dates are written as strings, preventing serialization errors.
-            pm,
-            qe1,
-            qe2
-        ]
+        row_to_append = [rel_ver, s_date, e_date, pm, qe1, qe2]
 
         if not row_to_append:
             logging.error(f"No row to be updated: {passed_args}")
-            raise ValueError("No arguments to be added.")>p
+            raise ValueError("No arguments to be added.")
 
         self._assignment_wsheet.append_row(
             row_to_append, value_input_option="USER_ENTERED"
